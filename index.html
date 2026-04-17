@@ -64,7 +64,7 @@
     <p id="status" class="muted">앱이 열리지 않으면 아래 버튼을 눌러 다시 시도해 주세요.</p>
     <div class="actions">
       <a id="open" class="btn btn-primary" href="#">Obsidian 다시 열기</a>
-      <button id="back" class="btn btn-secondary" type="button">Discord로 돌아가기</button>
+      <button id="back" class="btn btn-secondary" type="button">이전 화면으로 돌아가기 시도</button>
       <button id="close" class="btn btn-ghost" type="button">이 창 닫기 시도</button>
     </div>
   </div>
@@ -106,7 +106,7 @@
       try { window.open('', '_self'); } catch (e) {}
       try { window.close(); } catch (e) {}
       setTimeout(function () {
-        if (statusEl) statusEl.textContent = '자동으로 닫히지 않으면 아래 “Discord로 돌아가기”를 눌러 주세요.';
+        if (statusEl) statusEl.textContent = '자동으로 닫히지 않으면 상단의 X 또는 완료를 눌러 닫아 주세요.';
       }, 300);
     }
 
@@ -117,7 +117,7 @@
     }
 
     function tryBack(statusEl, returnUrl) {
-      if (statusEl) statusEl.textContent = 'Discord로 돌아가기를 시도하는 중…';
+      if (statusEl) statusEl.textContent = '이전 화면으로 돌아가기를 시도하는 중…';
 
       try {
         history.back();
@@ -137,7 +137,7 @@
             return;
           } catch (e) {}
         }
-        if (statusEl) statusEl.textContent = '자동 복귀가 막혀 있습니다. iPhone의 뒤로가기 또는 “완료”로 Discord로 돌아가 주세요.';
+        if (statusEl) statusEl.textContent = '자동 복귀는 막혀 있습니다. 상단의 X 또는 완료를 눌러 Discord로 돌아가 주세요.';
       }, 900);
     }
 
@@ -183,45 +183,41 @@
       backEl.addEventListener('click', function () { tryBack(statusEl, returnUrl); });
       closeEl.addEventListener('click', function () { tryClose(statusEl); });
       openEl.addEventListener('click', function () {
-        if (discordIos) {
-          setTimeout(function () { tryBack(statusEl, returnUrl); }, 2200);
-        } else {
+        if (!discordIos) {
           setTimeout(function () { tryClose(statusEl); }, 3000);
         }
       });
 
       if (discordIos) {
-        leadEl.textContent = 'Discord iPhone에서는 자동 닫기 대신 이전 화면으로 돌아가기를 우선 시도합니다.';
-        statusEl.textContent = 'Obsidian이 열리면 잠시 뒤 Discord로 돌아가기를 시도합니다. 안 되면 버튼을 눌러 주세요.';
+        leadEl.textContent = 'Discord iPhone에서는 자동 닫기보다 Obsidian 열기를 우선 시도합니다.';
+        statusEl.textContent = '열린 뒤 이 화면이 남으면 상단의 X 또는 완료를 눌러 Discord로 돌아가 주세요.';
         closeEl.style.display = 'none';
       } else {
         statusEl.textContent = 'Obsidian이 열리면 이 창은 3초 뒤 자동 닫기를 시도합니다.';
       }
 
       document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'hidden') {
+        if (document.visibilityState === 'hidden' && !discordIos) {
           clearTimeout(handoffTimer);
           handoffTimer = setTimeout(function () {
-            if (discordIos) tryBack(statusEl, returnUrl);
-            else tryClose(statusEl);
-          }, discordIos ? 1200 : 3000);
+            tryClose(statusEl);
+          }, 3000);
         }
       });
 
       window.addEventListener('pagehide', function () {
-        clearTimeout(handoffTimer);
-        handoffTimer = setTimeout(function () {
-          if (discordIos) tryBack(statusEl, returnUrl);
-          else tryClose(statusEl);
-        }, discordIos ? 1200 : 3000);
+        if (!discordIos) {
+          clearTimeout(handoffTimer);
+          handoffTimer = setTimeout(function () {
+            tryClose(statusEl);
+          }, 3000);
+        }
       });
 
       setTimeout(function () {
         launchCount += 1;
         location.replace(uri);
-        if (discordIos) {
-          handoffTimer = setTimeout(function () { tryBack(statusEl, returnUrl); }, 2200);
-        } else {
+        if (!discordIos) {
           handoffTimer = setTimeout(function () { tryClose(statusEl); }, 3000);
         }
       }, 80);
