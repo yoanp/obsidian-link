@@ -110,17 +110,35 @@
       }, 300);
     }
 
-    function tryBack(statusEl) {
+    function getReturnUrl(u) {
+      var r = u.searchParams.get('r') || u.searchParams.get('return') || '';
+      if (!r) return '';
+      try { return decodeURIComponent(r); } catch (e) { return r; }
+    }
+
+    function tryBack(statusEl, returnUrl) {
+      if (statusEl) statusEl.textContent = 'Discord로 돌아가기를 시도하는 중…';
+
       try {
-        if (history.length > 1) {
-          history.back();
-          setTimeout(function () {
-            if (statusEl) statusEl.textContent = '자동 복귀가 안 되면 “Discord로 돌아가기” 버튼을 한 번 더 눌러 주세요.';
-          }, 700);
-          return;
-        }
+        history.back();
       } catch (e) {}
-      if (statusEl) statusEl.textContent = '이 화면에서 뒤로가기로 Discord로 돌아가 주세요.';
+
+      setTimeout(function () {
+        try {
+          history.go(-1);
+        } catch (e) {}
+      }, 250);
+
+      setTimeout(function () {
+        var ref = document.referrer || returnUrl || '';
+        if (ref && ref !== location.href) {
+          try {
+            location.href = ref;
+            return;
+          } catch (e) {}
+        }
+        if (statusEl) statusEl.textContent = '자동 복귀가 막혀 있습니다. iPhone의 뒤로가기 또는 “완료”로 Discord로 돌아가 주세요.';
+      }, 900);
     }
 
     (function () {
@@ -128,6 +146,7 @@
       var q = u.searchParams.get('q');
       var v = u.searchParams.get('v');
       var f = u.searchParams.get('f');
+      var returnUrl = getReturnUrl(u);
       var statusEl = document.getElementById('status');
       var leadEl = document.getElementById('lead');
       var openEl = document.getElementById('open');
@@ -161,11 +180,11 @@
 
       var uri = buildUri(v, f);
       openEl.href = uri;
-      backEl.addEventListener('click', function () { tryBack(statusEl); });
+      backEl.addEventListener('click', function () { tryBack(statusEl, returnUrl); });
       closeEl.addEventListener('click', function () { tryClose(statusEl); });
       openEl.addEventListener('click', function () {
         if (discordIos) {
-          setTimeout(function () { tryBack(statusEl); }, 2200);
+          setTimeout(function () { tryBack(statusEl, returnUrl); }, 2200);
         } else {
           setTimeout(function () { tryClose(statusEl); }, 3000);
         }
@@ -183,7 +202,7 @@
         if (document.visibilityState === 'hidden') {
           clearTimeout(handoffTimer);
           handoffTimer = setTimeout(function () {
-            if (discordIos) tryBack(statusEl);
+            if (discordIos) tryBack(statusEl, returnUrl);
             else tryClose(statusEl);
           }, discordIos ? 1200 : 3000);
         }
@@ -192,7 +211,7 @@
       window.addEventListener('pagehide', function () {
         clearTimeout(handoffTimer);
         handoffTimer = setTimeout(function () {
-          if (discordIos) tryBack(statusEl);
+          if (discordIos) tryBack(statusEl, returnUrl);
           else tryClose(statusEl);
         }, discordIos ? 1200 : 3000);
       });
@@ -201,7 +220,7 @@
         launchCount += 1;
         location.replace(uri);
         if (discordIos) {
-          handoffTimer = setTimeout(function () { tryBack(statusEl); }, 2200);
+          handoffTimer = setTimeout(function () { tryBack(statusEl, returnUrl); }, 2200);
         } else {
           handoffTimer = setTimeout(function () { tryClose(statusEl); }, 3000);
         }
